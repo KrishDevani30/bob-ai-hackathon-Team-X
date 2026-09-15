@@ -6,14 +6,13 @@
 
 Before you begin, ensure you have the following installed:
 
-- [ ] [e.g., Python 3.11+]
-- [ ] [e.g., Node.js 18+]
-- [ ] [e.g., Docker Desktop]
-- [ ] [e.g., An IBM Cloud account with watsonx.ai access]
+- [ ] Python 3.11 or newer
+- [ ] pip
+- [ ] An IBM Cloud account with watsonx.ai access (optional; only needed for live LLM calls)
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and fill in the values:
+The application runs locally with SQLite and a deterministic mock LLM by default, so no environment file is required. To enable live watsonx.ai calls, set these variables in the shell before starting the backend:
 
 ```bash
 cp .env.example .env
@@ -21,44 +20,43 @@ cp .env.example .env
 
 | Variable | Description | Required |
 |---|---|---|
-| `WATSONX_API_KEY` | Your IBM watsonx.ai API key | Yes |
-| `WATSONX_PROJECT_ID` | Your watsonx.ai project ID | Yes |
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `SLACK_WEBHOOK_URL` | Slack webhook for alerts | No |
+| `WATSONX_API_KEY` | Your IBM watsonx.ai API key; enables the live client | Optional |
+| `WATSONX_PROJECT_ID` | Your watsonx.ai project ID | Required with `WATSONX_API_KEY` |
+| `WATSONX_URL` | watsonx.ai service URL; defaults to `https://us-south.ml.cloud.ibm.com` | No |
+| `WATSONX_MODEL_ID` | Granite model ID; defaults to `ibm/granite-13b-chat-v2` | No |
+| `DATABASE_URL` | SQLAlchemy database URL; defaults to `sqlite:///./ctrm.db` | No |
 
 ## Installation
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/[your-org]/[your-repo].git
-cd [your-repo]
+# 1. From the repository root, enter the source directory
+cd src
 
 # 2. Install backend dependencies
-[your command — e.g.: pip install -r requirements.txt]
+pip install -r requirements.txt
 
-# 3. Install frontend dependencies (if applicable)
-[your command — e.g.: cd frontend && npm install]
+# 3. Generate the deterministic synthetic trial dataset
+python data/generate_synthetic_data.py --seed 42
 
-# 4. Set up the database (if applicable)
-[your command — e.g.: python manage.py migrate]
+# 4. Database tables are created automatically when the backend starts
 ```
 
 ## Running the Application
 
 ```bash
-# Start the backend
-[your command — e.g.: uvicorn app.main:app --reload]
+# Start the backend from src/
+uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
 
-# Start the frontend (in a separate terminal, if applicable)
-[your command — e.g.: cd frontend && npm run dev]
+# Start the dashboard in a second terminal from src/
+streamlit run dashboard/app.py
 ```
 
-The application will be available at: `http://localhost:[PORT]`
+The dashboard will be available at `http://localhost:8501` and the API documentation at `http://localhost:8000/docs`.
 
 ## Running Tests
 
 ```bash
-[your test command — e.g.: pytest tests/ -v]
+pytest
 ```
 
 ## Quick Demo (Optional)
@@ -66,14 +64,14 @@ The application will be available at: `http://localhost:[PORT]`
 If you have a demo script or sample data to showcase the project quickly:
 
 ```bash
-[e.g.: python demo/seed_demo_data.py]
-[e.g.: open http://localhost:8000/demo]
+python data/generate_synthetic_data.py --seed 42
+# Then open http://localhost:8501, click Ingest Data, and click Run Analysis.
 ```
 
 ## Troubleshooting
 
 | Issue | Solution |
 |---|---|
-| [e.g., `ModuleNotFoundError`] | [e.g., Run `pip install -r requirements.txt` again] |
-| [e.g., Database connection refused] | [e.g., Ensure PostgreSQL is running: `docker compose up db`] |
-| [e.g., watsonx.ai 401 error] | [e.g., Check `WATSONX_API_KEY` in your `.env` file] |
+| `ModuleNotFoundError` | Confirm that the active Python environment is the one where `pip install -r requirements.txt` was run. |
+| The dashboard cannot reach the API | Start the backend first with `uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000`, then start Streamlit. |
+| watsonx.ai authentication error | Verify `WATSONX_API_KEY` and `WATSONX_PROJECT_ID`, or unset `WATSONX_API_KEY` to use the local mock client. |

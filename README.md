@@ -1,6 +1,6 @@
-# 🚀 [Your Project Title Here]
+# Clinical Trial Risk Monitor
 
-> ⚠️ **Replace everything in `[ ]` brackets with your actual content before submission.**
+> ⚠️ **Prototype notice:** This decision-support proof of concept uses synthetic data. It is not a validated GxP system; qualified clinical research professionals must review all outputs before operational or regulatory use.
 
 ---
 
@@ -8,36 +8,32 @@
 
 | Field | Value |
 |---|---|
-| **Team Name** | [Your Team Name] |
-| **Track** | [AI / DevOps / Sustainability / Open] |
-| **Team Lead** | [Name] — [email@ibm.com] |
-| **Members** | [Name 1], [Name 2], [Name 3] |
+| **Team Name** | Team-X |
+| **Track** | AI |
+| **Team Lead** | Krish Devani — 23it023@charusat.edu.in |
+| **Members** | Prince Diyora, Dhruv Gabani, Dishant Nakrani |
 
 ---
 
 ## 🎯 Problem Statement
 
-> In 2–3 sentences: What problem does your project solve? Who experiences this problem?
-
-[Describe the real-world problem your project addresses. Be specific about who the user is and what pain point they face.]
+Clinical trial risk managers and clinical operations teams need to identify protocol deviations before they become audit findings. In large oncology trials, missed or out-of-window visits, dosing issues, prohibited medications, missing safety assessments, late data entry, and eligibility violations can be difficult to detect across thousands of records, potentially delaying submissions and increasing compliance risk.
 
 ---
 
 ## 💡 Solution
 
-> In 2–3 sentences: What did you build? How does it solve the problem above?
-
-[Describe your solution clearly. Explain the core mechanism — what makes it work.]
+Clinical Trial Risk Monitor is a FastAPI and Streamlit decision-support application that analyzes protocol and visit data, detects deviations, classifies severity, and scores site-level risk. It combines deterministic protocol rules with optional watsonx.ai-assisted classification, then generates CAPA narratives and exportable reports so teams can investigate emerging issues earlier.
 
 ---
 
 ## ✨ Key Features
 
-- **Feature 1:** [Brief description — e.g., "Real-time anomaly detection using watsonx.ai"]
-- **Feature 2:** [Brief description]
-- **Feature 3:** [Brief description]
-- **Feature 4:** [Optional]
-- **Feature 5:** [Optional]
+- **Protocol-aware deviation detection:** Seven rules identify visit-window, missed-visit, dosing, prohibited-medication, missing-assessment, late-entry, and eligibility deviations.
+- **Hybrid severity classification:** Optional LLM reasoning is combined with deterministic ICH E6(R2)-aligned overrides that can only raise severity.
+- **Site-level risk scoring:** Six leading indicators produce a transparent 0–100 score with a breakdown for investigation.
+- **Operational dashboard:** Streamlit views provide overview metrics, site risk heatmaps, deviation drill-down, and analysis controls.
+- **CAPA generation and export:** LLM-grounded corrective and preventive action narratives can be rendered to DOCX and PDF.
 
 ---
 
@@ -45,11 +41,11 @@
 
 | Category | Technologies |
 |---|---|
-| **Languages** | [e.g., Python, TypeScript] |
-| **Frameworks** | [e.g., FastAPI, React] |
-| **IBM Technologies** | [e.g., watsonx.ai, IBM Bob, IBM Cloud] |
-| **Databases** | [e.g., PostgreSQL, Redis] |
-| **Other** | [e.g., Docker, GitHub Actions] |
+| **Languages** | Python |
+| **Frameworks** | FastAPI, Streamlit, Pydantic, SQLAlchemy |
+| **IBM Technologies** | IBM watsonx.ai with Granite integration, IBM Bob |
+| **Databases** | SQLite by default; PostgreSQL and Db2-compatible configuration supported |
+| **Other** | pandas, NumPy, Plotly, pytest, python-docx, ReportLab, Uvicorn |
 
 ---
 
@@ -73,22 +69,32 @@
 
 ## ⚡ How to Run
 
-> **Copy these exact steps from your [`docs/setup-guide.md`](docs/setup-guide.md)**
+> These commands run the local prototype from the repository root.
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/[your-repo].git
-cd [your-repo]
+# 1. Install backend dependencies
+cd src
+pip install -r requirements.txt
 
-# 2. Install dependencies
-[your install command here]
+# 2. Generate the synthetic trial dataset
+python data/generate_synthetic_data.py --seed 42
 
-# 3. Configure environment
-cp .env.example .env
-# Edit .env with your values
+# 3. Start the FastAPI backend
+uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+```
 
-# 4. Run the project
-[your run command here]
+In a second terminal, from `src/`, start the dashboard:
+
+```bash
+streamlit run dashboard/app.py
+```
+
+Open `http://localhost:8501`, use the sidebar to ingest data and run analysis, and access the API at `http://localhost:8000/docs`.
+
+Run the test suite from `src/` with:
+
+```bash
+pytest
 ```
 
 ---
@@ -97,10 +103,10 @@ cp .env.example .env
 
 | Artifact | Link |
 |---|---|
-| 📹 Demo Video | [See demo/demo-video-link.txt](demo/demo-video-link.txt) |
-| 🌐 Live Demo | [See demo/live-demo-url.txt](demo/live-demo-url.txt) |
+| 📹 Demo Video | [See demo/demo-video-link.txt](demo/demo-video-link.txt) — link pending |
+| 🌐 Live Demo | [See demo/live-demo-url.txt](demo/live-demo-url.txt) — not deployed; run locally |
 | 🖼️ Screenshots | [See demo/screenshots/](demo/screenshots/) |
-| 📊 Presentation | [See presentation/slides.pdf](presentation/) |
+| 📊 Presentation | [See presentation/](presentation/) |
 
 ---
 
@@ -108,14 +114,15 @@ cp .env.example .env
 
 > Be honest — judges appreciate transparency over overclaiming.
 
-- [Limitation 1: e.g., "Authentication is mocked — not production-ready"]
-- [Limitation 2: e.g., "Only tested on Chrome"]
-- [Limitation 3: e.g., "Feature X is scaffolded but not fully implemented"]
+- The prototype uses synthetic clinical-trial data and is not validated for GxP or regulatory use.
+- Authentication, authorization, and production deployment controls are not implemented.
+- watsonx.ai integration is optional; the default deterministic mock enables local demos without API credentials.
+- The demo video and live deployment links have not been supplied yet.
 
 ---
 
 ## 🏅 What We're Most Proud Of
 
-[Tell the judges what part of your submission is strongest and worth paying close attention to.]
+Our strongest work is the transparent, protocol-aware risk pipeline: deterministic detection rules provide reproducible findings, while the hybrid classifier preserves human oversight by enforcing severity floors for safety-critical and eligibility-related deviations. The dashboard makes those findings actionable at both site and deviation level.
 
 ---
