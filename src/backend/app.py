@@ -38,6 +38,7 @@ from backend.schemas import (
     DeviationOut,
     IngestRequest,
     IngestResponse,
+    RescoreRequest,
     SiteDetailOut,
     SiteRiskListResponse,
     SiteRiskOut,
@@ -237,7 +238,79 @@ def analyze(db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
-# GET /deviations
+# POST /analyze/rescore — re-score with custom weights (no LLM re-call)
+# ---------------------------------------------------------------------------
+
+@app.post("/analyze/rescore", response_model=AnalyzeResponse)
+def rescore(request: RescoreRequest, db: Session = Depends(get_db)):
+    """Re-compute site risk scores using custom weights from the dashboard.
+
+    Uses existing deviation records already in the DB — no re-detection or
+    re-classification needed.  Returns instantly.
+    """
+    from backend.risk.config import RiskWeightsConfig
+    from backend.detection.models import Deviation as DevModel
+
+    t0 = time.perf_counter()
+
+    # Build RiskWeightsConfig from submitted dict (normalised by dashboard)
+    try:
+        weights = RiskWeightsConfig(**request.weights)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid weights: {exc}")
+
+    # Load existing deviation records
+    dev_records = db.query(DeviationRecord).all()
+    if not dev_records:
+        raise HTTPException(status_code=409, detail="No deviations found — run /analyze first.")
+
+    deviation_models = [
+        DevModel(
+            deviation_id=d.deviation_id,
+            patient_id=d.patient_id,
+            site_id=d.site_id,
+            visit_id=d.visit_id,
+            rule_id=d.rule_id,
+            deviation_type=d.deviation_type,
+            detected_at=d.detected_at,
+            magnitude=d.magnitude,
+            context=d.get_context(),
+            is_safety_critical=d.is_safety_critical,
+            severity=d.severity,
+            severity_source=d.severity_source,
+            rationale=d.rationale,
+        )
+        for d in dev_records
+    ]
+
+    sites = [_site_to_dict(s) for s in db.query(SiteRecord).all()]
+    patients = [_patient_to_dict(p) for p in db.query(PatientRecord).all()]
+    visits = [_visit_to_dict(v) for v in db.query(VisitRecord).all()]
+
+    scores = score_sites(deviation_models, sites, patients, visits, weights=weights)
+
+    db.query(SiteRiskRecord).delete()
+    for score in scores:
+        rec = SiteRiskRecord(
+            site_id=score.site_id,
+            score=score.score,
+            risk_band=score.risk_band,
+            total_deviations=score.total_deviations,
+            total_visits=score.total_visits,
+            indicators_json=json.dumps([ind.model_dump() for ind in score.indicators]),
+            computed_at=datetime.utcnow(),
+        )
+        db.add(rec)
+
+    db.commit()
+    elapsed = time.perf_counter() - t0
+    return AnalyzeResponse(
+        deviations_detected=len(dev_records),
+        sites_scored=len(scores),
+        elapsed_seconds=round(elapsed, 2),
+    )
+
+
 # ---------------------------------------------------------------------------
 
 @app.get("/deviations", response_model=DeviationListResponse)
@@ -271,6 +344,33 @@ def list_deviations(
         page_size=page_size,
         items=[_dev_record_to_out(r) for r in items],
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /sites/meta  — lightweight bulk metadata (used by world map, no risk data)
+# ---------------------------------------------------------------------------
+
+@app.get("/sites/meta")
+def list_sites_meta(db: Session = Depends(get_db)) -> list[dict]:
+    """Return site_id, site_name, country, and principal_investigator for all
+    sites in a single DB query.  Used by the dashboard world-map view so it
+    does not need to fire one request per site.
+    """
+    sites = db.query(
+        SiteRecord.site_id,
+        SiteRecord.site_name,
+        SiteRecord.country,
+        SiteRecord.principal_investigator,
+    ).all()
+    return [
+        {
+            "site_id": s.site_id,
+            "site_name": s.site_name,
+            "country": s.country,
+            "principal_investigator": s.principal_investigator,
+        }
+        for s in sites
+    ]
 
 
 # ---------------------------------------------------------------------------

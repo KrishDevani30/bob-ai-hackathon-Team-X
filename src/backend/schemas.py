@@ -110,10 +110,15 @@ class CapaGenerateResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Analyze
+# Analyze / Rescore
 # ---------------------------------------------------------------------------
 
 class AnalyzeResponse(BaseModel):
     deviations_detected: int
     sites_scored: int
     elapsed_seconds: float
+
+
+class RescoreRequest(BaseModel):
+    """Custom risk weights submitted from the interactive weight tuner."""
+    weights: dict[str, float]

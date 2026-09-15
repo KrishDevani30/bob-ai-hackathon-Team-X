@@ -19,9 +19,24 @@ _TYPE_MAP: dict[str, tuple[str, str, str]] = {
 
 
 class MockLLMClient(LLMClient):
-    """Returns a deterministic JSON classification based on deviation_type keyword."""
+    """Returns a deterministic JSON classification or CAPA report based on request."""
 
     def complete(self, system_prompt: str, user_message: str) -> str:
+        # Check if this is a CAPA generation request
+        if "capa" in system_prompt.lower() or "root_cause_analysis" in system_prompt.lower():
+            return json.dumps({
+                "root_cause_analysis": "Root cause analysis indicates site workflow bottlenecks, scheduling variance during active dosing cycles, and delayed electronic data capture reconciliation.",
+                "immediate_corrective_action": "1. Re-train site staff on protocol-specified visit windows and mandatory safety assessments.\n2. Re-verify concomitant medication logs for active protocol compliance.",
+                "preventive_action": "1. Implement automated EHR/EDC calendar alerts 48 hours prior to scheduled visit windows.\n2. Mandate dual-coordinator verification before dispensing study drug.",
+                "effectiveness_check_criteria": "Audit 100% of subject visits over the subsequent 60 days to verify zero unapproved protocol deviations and 100% assessment completion.",
+                "regulatory_references": [
+                    "ICH E6(R2) Section 4.5 Compliance with Protocol",
+                    "ICH E6(R2) Section 4.9 Records and Reports",
+                    "ICH E6(R2) Section 5.18 Monitoring",
+                    "21 CFR 312.60 General Responsibilities of Investigators"
+                ]
+            })
+
         # Extract deviation_type from user message heuristically
         chosen = ("Minor", "Protocol deviation detected.", "ICH E6(R2) 5.0")
         for key, value in _TYPE_MAP.items():
@@ -36,3 +51,4 @@ class MockLLMClient(LLMClient):
             "confidence": 0.92,
         }
         return json.dumps(result)
+

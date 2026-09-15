@@ -27,7 +27,7 @@ def export_docx(report: CapaReport, output_path: Path) -> Path:
 
     # Draft watermark paragraph
     draft_para = doc.add_paragraph(
-        "⚠ DRAFT — System-generated. Requires qualified human review before regulatory use."
+        "[DRAFT] System-generated. Requires qualified human review before regulatory use."
     )
     draft_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     draft_run = draft_para.runs[0]
@@ -93,7 +93,7 @@ def export_docx(report: CapaReport, output_path: Path) -> Path:
     doc.add_paragraph()
     doc.add_heading("Regulatory References", level=2)
     for ref in report.capa_content.regulatory_references:
-        doc.add_paragraph(f"• {ref}")
+        doc.add_paragraph(f"* {ref}")
 
     # Signature block
     doc.add_paragraph()
@@ -168,7 +168,7 @@ def export_pdf(report: CapaReport, output_path: Path) -> Path:
 
     story.append(Paragraph("CORRECTIVE AND PREVENTIVE ACTION REPORT", h1_style))
     story.append(Paragraph(
-        "⚠ DRAFT — System-generated. Requires qualified human review before regulatory use.",
+        "[DRAFT] System-generated. Requires qualified human review before regulatory use.",
         warning_style,
     ))
     story.append(Spacer(1, 0.4 * cm))
@@ -235,7 +235,7 @@ def export_pdf(report: CapaReport, output_path: Path) -> Path:
     # Regulatory references
     story.append(Paragraph("Regulatory References", h2_style))
     for ref in report.capa_content.regulatory_references:
-        story.append(Paragraph(f"• {ref}", body_style))
+        story.append(Paragraph(f"* {ref}", body_style))
 
     story.append(Spacer(1, 0.5 * cm))
     story.append(Paragraph("Review and Approval", h2_style))
